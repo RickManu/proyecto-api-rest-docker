@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d   # ejecuta init.sql al crear el contenedor
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"   # opcional: acceder desde un cliente SQL en el host
+
+  tiendaa:
+    build:
+      context: .
+      dockerfile: php.Dockerfile
+    container_name: tiendaa
+    restart: unless-stopped
+    volumes:
+      - ./tiendaA:/var/www/html
+    ports:
+      - "8081:80"     # http://localhost:8081
+    depends_on:
+      - db
+
+  tiendab:
+    build:
+      context: .
+      dockerfile: php.Dockerfile
+    container_name: tiendab
+    restart: unless-stopped
+    volumes:
+      - ./tiendaB:/var/www/html
+    ports:
+      - "8082:80"     # http://localhost:8082
+    depends_on:
+      - db
+      - tiendaa
+
+volumes:
+  db_data:
