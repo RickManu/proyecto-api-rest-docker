@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de Control - Tiendas</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background: #f1f5f9;
+    color: #1e293b;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ---------- Menú lateral ---------- */
+.sidebar {
+    width: 240px;
+    background: #1e293b;
+    color: #cbd5e1;
+    padding: 24px 16px;
+    flex-shrink: 0;
+}
+.sidebar h1 { color: #fff; font-size: 1.1em; margin: 0 0 4px; }
+.sidebar .sub { font-size: 0.8em; color: #94a3b8; margin: 0 0 28px; }
+.sidebar nav a {
+    display: block;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 0.95em;
+}
+.sidebar nav a:hover { background: #334155; color: #fff; }
+.sidebar nav a.active { background: #4338ca; color: #fff; }
+.sidebar .grupo { font-size: 0.7em; text-transform: uppercase; color: #64748b; margin: 18px 12px 8px; letter-spacing: 0.05em; }
+
+/* ---------- Contenido ---------- */
+main { flex: 1; padding: 40px 32px; }
+.seccion { display: none; max-width: 640px; }
+.seccion.active { display: block; }
+.seccion > header { margin-bottom: 24px; }
+.seccion > header h2 { font-size: 1.4em; margin: 0 0 4px; }
+.seccion > header p { margin: 0; color: #64748b; font-size: 0.9em; }
+.card {
+    background: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+.card h3 { margin: 0 0 16px; font-size: 1.05em; color: #334155; display: flex; align-items: center; gap: 8px; }
+.tag { font-size: 0.7em; font-weight: normal; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 999px; }
+ul.stock { list-style: none; padding: 0; margin: 0; }
+ul.stock li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+ul.stock li.total { border-bottom: none; padding-top: 14px; font-weight: bold; color: #4338ca; font-size: 1.1em; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 0.95em; }
+th { color: #64748b; font-weight: 600; font-size: 0.8em; text-transform: uppercase; }
+label { display: block; font-size: 0.85em; color: #475569; margin-bottom: 6px; }
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1em;
+    margin-bottom: 14px;
+    background: #fff;
+}
+input:focus, select:focus { outline: none; border-color: #4338ca; }
+.btn {
+    width: 100%;
+    padding: 12px;
+    background: #4338ca;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn:hover { background: #372aa8; }
+.btn:disabled { background: #a5a3d9; cursor: not-allowed; }
+.btn-sec { background: #f1f5f9; color: #475569; margin-top: 8px; }
+.btn-sec:hover { background: #e2e8f0; }
+.fila { display: flex; gap: 10px; align-items: flex-end; }
+.fila > div { flex: 1; }
+.fila .btn { width: auto; padding: 10px 18px; margin-bottom: 14px; }
+.actions button { padding: 6px 10px; margin-right: 6px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+.btn-edit { background: #eef2ff; color: #4338ca; }
+.btn-delete { background: #fef2f2; color: #b91c1c; }
+.mensaje { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 0.9em; display: none; }
+.mensaje.ok { display: block; background: #ecfdf5; color: #047857; }
+.mensaje.err { display: block; background: #fef2f2; color: #b91c1c; }
+
+/* ---------- Modal de confirmación ---------- */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.45); align-items: center; justify-content: center; z-index: 10; }
+.overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 24px; max-width: 340px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal h3 { margin: 0 0 8px; font-size: 1.1em; }
+.modal p { margin: 0 0 20px; color: #64748b; font-size: 0.9em; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-cancelar { background: #f1f5f9; color: #475569; }
+.btn-confirmar { background: #b91c1c; color: #fff; }
+
+@media (max-width: 720px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; padding: 16px; }
+    .sidebar .sub, .sidebar .grupo { display: none; }
+    .sidebar nav { display: flex; gap: 6px; overflow-x: auto; }
+    .sidebar nav a { white-space: nowrap; margin: 0; }
+    main { padding: 24px 16px; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <h1>Control de Stock</h1>
+    <p class="sub">Tienda A y Tienda B · API REST + Docker</p>
+    <nav>
+        <div class="grupo">Tienda B</div>
+        <a href="#inventario" data-seccion="inventario">Inventario combinado</a>
+        <a href="#stock" data-seccion="stock">Actualizar stock</a>
+        <div class="grupo">Tienda A</div>
+        <a href="#productos" data-seccion="productos">Gestión de productos</a>
+    </nav>
+</aside>
+
+<main>
+    <!-- ========== Inventario combinado ========== -->
+    <section class="seccion" id="sec-inventario">
+        <header>
+            <h2>Inventario combinado</h2>
+            <p>Stock local de Tienda B + stock remoto de Tienda A (consultado vía cURL)</p>
+        </header>
+        <div class="card">
+            <form id="invForm" class="fila">
+                <div>
+                    <label>ID producto</label>
+                    <input type="number" id="invId" min="1" value="1" required>
+                </div>
+                <button class="btn" type="submit">Consultar</button>
+            </form>
+        </div>
+        <div class="card">
+            <h3>Inventario: <span id="invNombre">—</span> <span class="tag" id="invTag">ID 1</span></h3>
+            <ul class="stock">
+                <li><span>Stock Local (Tienda B)</span><strong id="invLocal">—</strong></li>
+                <li><span>Stock Remoto (Tienda A vía cURL)</span><strong id="invRemoto">—</strong></li>
+                <li class="total"><span>Stock Total Combinado</span><span id="invTotal">—</span></li>
+            </ul>
+            <div class="mensaje" id="invMsg"></div>
+        </div>
+    </section>
+
+    <!-- ========== Actualizar stock ========== -->
+    <section class="seccion" id="sec-stock">
+        <header>
+            <h2>Actualizar stock</h2>
+            <p>Modifica el stock de un producto en cualquiera de las dos tiendas</p>
+        </header>
+        <div class="card">
+            <form id="stockForm">
+                <label>Tienda</label>
+                <select id="stockTienda">
+                    <option value="b">Tienda B (local)</option>
+                    <option value="a">Tienda A (remoto)</option>
+                </select>
+                <label>ID producto</label>
+                <input type="number" id="stockId" min="1" value="1" required>
+                <label>Nuevo stock</label>
+                <input type="number" id="stockValor" min="0" required>
+                <button class="btn" type="submit" id="stockBtn">Actualizar</button>
+            </form>
+            <div class="mensaje" id="stockMsg"></div>
+        </div>
+    </section>
+
+    <!-- ========== CRUD productos Tienda A ========== -->
+    <section class="seccion" id="sec-productos">
+        <header>
+            <h2>Gestión de productos · Tienda A</h2>
+            <p>CRUD completo (GET, POST, PUT, DELETE) sobre la API REST</p>
+        </header>
+        <div class="card">
+            <h3 id="prodTitulo">Nuevo producto</h3>
+            <form id="prodForm">
+                <input type="hidden" id="prodId">
+                <label>Nombre</label>
+                <input type="text" id="prodNombre" required>
+                <label>Stock</label>
+                <input type="number" id="prodStock" min="0" required>
+                <button class="btn" type="submit" id="prodBtn">Crear producto</button>
+                <button class="btn btn-sec" type="button" id="prodCancelar" style="display:none">Cancelar edición</button>
+            </form>
+            <div class="mensaje" id="prodMsg"></div>
+        </div>
+        <div class="card">
+            <h3>Productos</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Nombre</th><th>Stock</th><th>Acciones</th></tr></thead>
+                <tbody id="prodTabla"><tr><td colspan="4">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<div class="overlay" id="overlay">
+    <div class="modal">
+        <h3>Eliminar producto</h3>
+        <p id="modalTexto"></p>
+        <div class="modal-actions">
+            <button class="btn-cancelar" id="modalCancelar">Cancelar</button>
+            <button class="btn-confirmar" id="modalConfirmar">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tienda A se accede desde el navegador por su puerto publicado en el host
+const API_A = 'http://' + location.hostname + ':8081/api/';
+
+const $ = id => document.getElementById(id);
+
+function mostrarMensaje(el, texto, tipo) {
+    el.textContent = texto;
+    el.className = 'mensaje ' + tipo;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = 'mensaje'; }, 3000);
+}
+
+function escapar(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- Navegación del menú ----------
+const cargadores = {
+    inventario: () => cargarInventario(),
+    stock: () => {},
+    productos: () => cargarProductos()
+};
+
+function mostrarSeccion() {
+    const nombre = location.hash.slice(1) in cargadores ? location.hash.slice(1) : 'inventario';
+    document.querySelectorAll('.seccion').forEach(s => s.classList.toggle('active', s.id === 'sec-' + nombre));
+    document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a.dataset.seccion === nombre));
+    cargadores[nombre]();
+}
+window.addEventListener('hashchange', mostrarSeccion);
+
+// ---------- Inventario combinado ----------
+async function cargarInventario() {
+    const id = $('invId').value;
+    try {
+        const res = await fetch('inventario.php?id=' + encodeURIComponent(id));
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'desconocido');
+        $('invNombre').textContent = d.nombre;
+        $('invTag').textContent = 'ID ' + d.id;
+        $('invLocal').textContent = d.stock_local;
+        $('invRemoto').textContent = d.stock_remoto;
+        $('invTotal').textContent = d.stock_total;
+    } catch (err) {
+        mostrarMensaje($('invMsg'), 'Error: ' + err.message, 'err');
+    }
+}
+$('invForm').addEventListener('submit', e => { e.preventDefault(); cargarInventario(); });
+
+// ---------- Actualizar stock ----------
+$('stockForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const url = $('stockTienda').value === 'a' ? API_A + 'update.php' : 'update.php';
+    const fd = new FormData();
+    fd.append('id', $('stockId').value);
+    fd.append('stock', $('stockValor').value);
+
+    $('stockBtn').disabled = true;
+    try {
+        const res = await fetch(url, { method: 'POST', body: fd });
+        const d = await res.json();
+        if (res.ok) mostrarMensaje($('stockMsg'), 'Stock actualizado correctamente', 'ok');
+        else mostrarMensaje($('stockMsg'), 'Error: ' + (d.error || 'desconocido'), 'err');
+    } catch (err) {
+        mostrarMensaje($('stockMsg'), 'No se pudo conectar con el servidor', 'err');
+    }
+    $('stockBtn').disabled = false;
+});
+
+// ---------- CRUD productos Tienda A ----------
+let productos = [];
+
+async function cargarProductos() {
+    const tabla = $('prodTabla');
+    try {
+        const res = await fetch(API_A + 'productos.php');
+        productos = await res.json();
+        tabla.innerHTML = productos.length ? productos.map(p => `
+            <tr>
+                <td>${p.id}</td>
+                <td>${escapar(p.nombre)}</td>
+                <td>${p.stock}</td>
+                <td class="actions">
+                    <button class="btn-edit" onclick="editarProducto(${p.id})">Editar</button>
+                    <button class="btn-delete" onclick="pedirEliminar(${p.id})">Eliminar</button>
+                </td>
+            </tr>`).join('') : '<tr><td colspan="4">Sin productos</td></tr>';
+    } catch (err) {
+        tabla.innerHTML = '<tr><td colspan="4">Error al cargar productos</td></tr>';
+    }
+}
+
+function editarProducto(id) {
+    const p = productos.find(x => x.id === id);
+    if (!p) return;
+    $('prodId').value = p.id;
+    $('prodNombre').value = p.nombre;
+    $('prodStock').value = p.stock;
+    $('prodTitulo').textContent = 'Editar producto #' + p.id;
+    $('prodBtn').textContent = 'Guardar cambios';
+    $('prodCancelar').style.display = 'block';
+    window.scrollTo(0, 0);
+}
+
+function limpiarProdForm() {
+    $('prodForm').reset();
+    $('prodId').value = '';
+    $('prodTitulo').textContent = 'Nuevo producto';
+    $('prodBtn').textContent = 'Crear producto';
+    $('prodCancelar').style.display = 'none';
+}
+$('prodCancelar').addEventListener('click', limpiarProdForm);
+
+$('prodForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = $('prodId').value;
+    const payload = { nombre: $('prodNombre').value, stock: parseInt($('prodStock').value, 10) };
+
+    $('prodBtn').disabled = true;
+    try {
+        const res = await fetch(API_A + 'productos.php' + (id ? '?id=' + id : ''), {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (res.ok) {
+            mostrarMensaje($('prodMsg'), id ? 'Producto actualizado' : 'Producto creado', 'ok');
+            limpiarProdForm();
+            cargarProductos();
+        } else {
+            mostrarMensaje($('prodMsg'), 'Error: ' + (d.error || 'desconocido'), 'err');
+        }
+    } catch (err) {
+        mostrarMensaje($('prodMsg'), 'No se pudo conectar con el servidor', 'err');
+    }
+    $('prodBtn').disabled = false;
+});
+
+let idAEliminar = null;
+function pedirEliminar(id) {
+    idAEliminar = id;
+    $('modalTexto').textContent = '¿Seguro que quieres eliminar el producto #' + id + '? Esta acción no se puede deshacer.';
+    $('overlay').classList.add('show');
+}
+function cerrarModal() {
+    idAEliminar = null;
+    $('overlay').classList.remove('show');
+}
+$('modalCancelar').addEventListener('click', cerrarModal);
+$('overlay').addEventListener('click', e => { if (e.target === $('overlay')) cerrarModal(); });
+
+$('modalConfirmar').addEventListener('click', async () => {
+    const id = idAEliminar;
+    cerrarModal();
+    try {
+        const res = await fetch(API_A + 'productos.php?id=' + id, { method: 'DELETE' });
+        const d = await res.json();
+        if (res.ok) {
+            mostrarMensaje($('prodMsg'), 'Producto eliminado', 'ok');
+            cargarProductos();
+        } else {
+            mostrarMensaje($('prodMsg'), 'Error: ' + (d.error || 'desconocido'), 'err');
+        }
+    } catch (err) {
+        mostrarMensaje($('prodMsg'), 'No se pudo conectar con el servidor', 'err');
+    }
+});
+
+mostrarSeccion();
+</script>
+</body>
+</html>
