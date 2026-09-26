@@ -107,7 +107,35 @@ input:focus, select:focus { outline: none; border-color: #4338ca; }
 .btn-cancelar { background: #f1f5f9; color: #475569; }
 .btn-confirmar { background: #b91c1c; color: #fff; }
 
+/* ---------- Formulario y tabla de productos ---------- */
+.seccion.ancha { max-width: 880px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0 14px; }
+.campo.completo { grid-column: 1 / -1; }
+.campo input, .campo textarea { margin-bottom: 4px; }
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    resize: vertical;
+}
+textarea:focus { outline: none; border-color: #4338ca; }
+.campo.invalido input, .campo.invalido textarea { border-color: #dc2626; }
+small.error { display: block; min-height: 1.2em; margin-bottom: 8px; color: #dc2626; font-size: 0.8em; }
+.contador { float: right; color: #94a3b8; font-weight: normal; }
+.botones { display: flex; gap: 10px; }
+.botones .btn-sec { margin-top: 0; }
+.tabla-scroll { overflow-x: auto; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td .desc { display: block; color: #64748b; font-size: 0.85em; margin-top: 2px; }
+.cat { display: inline-block; font-size: 0.75em; background: #f1f5f9; color: #475569; padding: 1px 8px; border-radius: 999px; margin-left: 6px; }
+.stock-bajo { color: #b45309; font-weight: 600; }
+.stock-cero { color: #b91c1c; font-weight: 600; }
+.actions { white-space: nowrap; }
+
 @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
     body { flex-direction: column; }
     .sidebar { width: 100%; padding: 16px; }
     .sidebar .sub, .sidebar .grupo { display: none; }
@@ -123,11 +151,12 @@ input:focus, select:focus { outline: none; border-color: #4338ca; }
     <h1>Control de Stock</h1>
     <p class="sub">Tienda A y Tienda B · API REST + Docker</p>
     <nav>
-        <div class="grupo">Tienda B</div>
+        <div class="grupo">Inventario</div>
         <a href="#inventario" data-seccion="inventario">Inventario combinado</a>
         <a href="#stock" data-seccion="stock">Actualizar stock</a>
-        <div class="grupo">Tienda A</div>
-        <a href="#productos" data-seccion="productos">Gestión de productos</a>
+        <div class="grupo">Productos</div>
+        <a href="#productos-a" data-seccion="productos-a">Productos · Tienda A</a>
+        <a href="#productos-b" data-seccion="productos-b">Productos · Tienda B</a>
     </nav>
 </aside>
 
@@ -181,31 +210,59 @@ input:focus, select:focus { outline: none; border-color: #4338ca; }
         </div>
     </section>
 
-    <!-- ========== CRUD productos Tienda A ========== -->
-    <section class="seccion" id="sec-productos">
+    <!-- ========== CRUD productos (Tienda A o B) ========== -->
+    <section class="seccion ancha" id="sec-productos">
         <header>
-            <h2>Gestión de productos · Tienda A</h2>
-            <p>CRUD completo (GET, POST, PUT, DELETE) sobre la API REST</p>
+            <h2>Productos · <span id="prodTiendaNombre">Tienda A</span></h2>
+            <p>CRUD completo (GET, POST, PUT, DELETE) sobre la API REST de la tienda</p>
         </header>
         <div class="card">
             <h3 id="prodTitulo">Nuevo producto</h3>
-            <form id="prodForm">
+            <form id="prodForm" novalidate>
                 <input type="hidden" id="prodId">
-                <label>Nombre</label>
-                <input type="text" id="prodNombre" required>
-                <label>Stock</label>
-                <input type="number" id="prodStock" min="0" required>
-                <button class="btn" type="submit" id="prodBtn">Crear producto</button>
-                <button class="btn btn-sec" type="button" id="prodCancelar" style="display:none">Cancelar edición</button>
+                <div class="grid">
+                    <div class="campo completo">
+                        <label for="prodNombre">Nombre *</label>
+                        <input type="text" id="prodNombre" maxlength="100">
+                        <small class="error" data-error="nombre"></small>
+                    </div>
+                    <div class="campo">
+                        <label for="prodCategoria">Categoría</label>
+                        <input type="text" id="prodCategoria" maxlength="50" list="listaCategorias">
+                        <datalist id="listaCategorias"></datalist>
+                        <small class="error" data-error="categoria"></small>
+                    </div>
+                    <div class="campo">
+                        <label for="prodPrecio">Precio *</label>
+                        <input type="number" id="prodPrecio" min="0" step="0.01">
+                        <small class="error" data-error="precio"></small>
+                    </div>
+                    <div class="campo">
+                        <label for="prodStock">Stock *</label>
+                        <input type="number" id="prodStock" min="0" step="1">
+                        <small class="error" data-error="stock"></small>
+                    </div>
+                    <div class="campo completo">
+                        <label for="prodDescripcion">Descripción <span class="contador" id="prodContador">0/255</span></label>
+                        <textarea id="prodDescripcion" maxlength="255" rows="2"></textarea>
+                        <small class="error" data-error="descripcion"></small>
+                    </div>
+                </div>
+                <div class="botones">
+                    <button class="btn" type="submit" id="prodBtn">Crear producto</button>
+                    <button class="btn btn-sec" type="button" id="prodCancelar" hidden>Cancelar edición</button>
+                </div>
             </form>
             <div class="mensaje" id="prodMsg"></div>
         </div>
         <div class="card">
-            <h3>Productos</h3>
-            <table>
-                <thead><tr><th>ID</th><th>Nombre</th><th>Stock</th><th>Acciones</th></tr></thead>
-                <tbody id="prodTabla"><tr><td colspan="4">Cargando...</td></tr></tbody>
-            </table>
+            <h3>Productos <span class="tag" id="prodConteo">0</span></h3>
+            <div class="tabla-scroll">
+                <table>
+                    <thead><tr><th>ID</th><th>Producto</th><th class="num">Precio</th><th class="num">Stock</th><th>Acciones</th></tr></thead>
+                    <tbody id="prodTabla"><tr><td colspan="5">Cargando...</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </section>
 </main>
@@ -237,17 +294,20 @@ function escapar(s) {
 }
 
 // ---------- Navegación del menú ----------
-const cargadores = {
-    inventario: () => cargarInventario(),
-    stock: () => {},
-    productos: () => cargarProductos()
+// Cada entrada del menú indica qué sección mostrar y qué cargar al abrirla
+const rutas = {
+    inventario:    { seccion: 'inventario', cargar: () => cargarInventario() },
+    stock:         { seccion: 'stock',      cargar: () => {} },
+    'productos-a': { seccion: 'productos',  cargar: () => abrirProductos('a') },
+    'productos-b': { seccion: 'productos',  cargar: () => abrirProductos('b') }
 };
 
 function mostrarSeccion() {
-    const nombre = location.hash.slice(1) in cargadores ? location.hash.slice(1) : 'inventario';
-    document.querySelectorAll('.seccion').forEach(s => s.classList.toggle('active', s.id === 'sec-' + nombre));
+    const nombre = location.hash.slice(1) in rutas ? location.hash.slice(1) : 'inventario';
+    const ruta = rutas[nombre];
+    document.querySelectorAll('.seccion').forEach(s => s.classList.toggle('active', s.id === 'sec-' + ruta.seccion));
     document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a.dataset.seccion === nombre));
-    cargadores[nombre]();
+    ruta.cargar();
 }
 window.addEventListener('hashchange', mostrarSeccion);
 
@@ -289,69 +349,195 @@ $('stockForm').addEventListener('submit', async e => {
     $('stockBtn').disabled = false;
 });
 
-// ---------- CRUD productos Tienda A ----------
+// ---------- CRUD productos (Tienda A o B) ----------
+const TIENDAS = {
+    a: { nombre: 'Tienda A', url: () => API_A + 'productos.php' },
+    b: { nombre: 'Tienda B', url: () => API_B + 'productos.php' }
+};
+let tiendaActual = 'a';
 let productos = [];
+const STOCK_BAJO = 5;
+
+function abrirProductos(tienda) {
+    if (tienda !== tiendaActual) limpiarProdForm();
+    tiendaActual = tienda;
+    $('prodTiendaNombre').textContent = TIENDAS[tienda].nombre;
+    cargarProductos();
+}
+
+// Envía una petición a la API de la tienda actual y devuelve { ok, status, data }
+async function api(metodo, id, cuerpo) {
+    const url = TIENDAS[tiendaActual].url() + (id ? '?id=' + id : '');
+    const opciones = { method: metodo };
+    if (cuerpo) {
+        opciones.headers = { 'Content-Type': 'application/json' };
+        opciones.body = JSON.stringify(cuerpo);
+    }
+    const res = await fetch(url, opciones);
+    let data = {};
+    try { data = await res.json(); } catch (e) { /* respuesta sin JSON */ }
+    return { ok: res.ok, status: res.status, data };
+}
+
+function formatoPrecio(n) {
+    return n.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 async function cargarProductos() {
     const tabla = $('prodTabla');
+    const tienda = tiendaActual;
+    tabla.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
     try {
-        const res = await fetch(API_A + 'productos.php');
-        productos = await res.json();
-        tabla.innerHTML = productos.length ? productos.map(p => `
-            <tr>
-                <td>${p.id}</td>
-                <td>${escapar(p.nombre)}</td>
-                <td>${p.stock}</td>
-                <td class="actions">
-                    <button class="btn-edit" onclick="editarProducto(${p.id})">Editar</button>
-                    <button class="btn-delete" onclick="pedirEliminar(${p.id})">Eliminar</button>
-                </td>
-            </tr>`).join('') : '<tr><td colspan="4">Sin productos</td></tr>';
+        const { ok, data } = await api('GET');
+        if (tienda !== tiendaActual) return;  // el usuario cambió de tienda mientras cargaba
+        if (!ok) throw new Error(data.error || 'desconocido');
+        productos = data;
     } catch (err) {
-        tabla.innerHTML = '<tr><td colspan="4">Error al cargar productos</td></tr>';
+        tabla.innerHTML = '<tr><td colspan="5">Error al cargar productos: ' + escapar(err.message) + '</td></tr>';
+        return;
     }
+
+    $('prodConteo').textContent = productos.length;
+    const categorias = [...new Set(productos.map(p => p.categoria).filter(Boolean))].sort();
+    $('listaCategorias').innerHTML = categorias.map(c => `<option value="${escapar(c)}">`).join('');
+
+    tabla.innerHTML = productos.length ? productos.map(p => {
+        const claseStock = p.stock === 0 ? 'stock-cero' : (p.stock <= STOCK_BAJO ? 'stock-bajo' : '');
+        return `
+        <tr>
+            <td>${p.id}</td>
+            <td>
+                ${escapar(p.nombre)}${p.categoria ? `<span class="cat">${escapar(p.categoria)}</span>` : ''}
+                ${p.descripcion ? `<span class="desc">${escapar(p.descripcion)}</span>` : ''}
+            </td>
+            <td class="num">${formatoPrecio(p.precio)}</td>
+            <td class="num ${claseStock}" title="${p.stock === 0 ? 'Sin stock' : (claseStock ? 'Stock bajo' : '')}">${p.stock}</td>
+            <td class="actions">
+                <button class="btn-edit" onclick="editarProducto(${p.id})">Editar</button>
+                <button class="btn-delete" onclick="pedirEliminar(${p.id})">Eliminar</button>
+            </td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="5">Sin productos. Crea el primero con el formulario.</td></tr>';
+}
+
+// ----- Errores por campo -----
+function limpiarErrores() {
+    document.querySelectorAll('#prodForm .campo').forEach(c => c.classList.remove('invalido'));
+    document.querySelectorAll('#prodForm small.error').forEach(s => { s.textContent = ''; });
+}
+
+function mostrarErrores(errores) {
+    limpiarErrores();
+    let primero = null;
+    for (const [campo, texto] of Object.entries(errores)) {
+        const small = document.querySelector(`#prodForm [data-error="${campo}"]`);
+        if (!small) continue;
+        small.textContent = texto;
+        small.closest('.campo').classList.add('invalido');
+        primero = primero || small.closest('.campo').querySelector('input, textarea');
+    }
+    if (primero) primero.focus();
+}
+
+// Mismas reglas que la API (comun/productos_api.php)
+function validarFormulario(v) {
+    const e = {};
+    if (!v.nombre) e.nombre = 'El nombre es obligatorio';
+    else if (v.nombre.length > 100) e.nombre = 'Máximo 100 caracteres';
+    else if (productos.some(p => p.nombre.toLowerCase() === v.nombre.toLowerCase() && String(p.id) !== v.id))
+        e.nombre = 'Ya existe un producto con ese nombre';
+
+    if (v.categoria.length > 50) e.categoria = 'Máximo 50 caracteres';
+
+    if (v.precio === '') e.precio = 'El precio es obligatorio';
+    else if (isNaN(Number(v.precio))) e.precio = 'El precio debe ser un número';
+    else if (Number(v.precio) < 0) e.precio = 'El precio no puede ser negativo';
+    else if (!/^\d+(\.\d{1,2})?$/.test(v.precio)) e.precio = 'Máximo 2 decimales';
+
+    if (v.stock === '') e.stock = 'El stock es obligatorio';
+    else if (!/^\d+$/.test(v.stock)) e.stock = 'El stock debe ser un entero mayor o igual a 0';
+    else if (Number(v.stock) > 1000000) e.stock = 'El stock no puede superar 1000000';
+
+    if (v.descripcion.length > 255) e.descripcion = 'Máximo 255 caracteres';
+    return e;
 }
 
 function editarProducto(id) {
     const p = productos.find(x => x.id === id);
     if (!p) return;
+    limpiarErrores();
     $('prodId').value = p.id;
     $('prodNombre').value = p.nombre;
+    $('prodCategoria').value = p.categoria || '';
+    $('prodPrecio').value = p.precio.toFixed(2);
     $('prodStock').value = p.stock;
+    $('prodDescripcion').value = p.descripcion || '';
+    actualizarContador();
     $('prodTitulo').textContent = 'Editar producto #' + p.id;
     $('prodBtn').textContent = 'Guardar cambios';
-    $('prodCancelar').style.display = 'block';
-    window.scrollTo(0, 0);
+    $('prodCancelar').hidden = false;
+    $('prodNombre').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function limpiarProdForm() {
     $('prodForm').reset();
     $('prodId').value = '';
+    limpiarErrores();
+    actualizarContador();
     $('prodTitulo').textContent = 'Nuevo producto';
     $('prodBtn').textContent = 'Crear producto';
-    $('prodCancelar').style.display = 'none';
+    $('prodCancelar').hidden = true;
 }
 $('prodCancelar').addEventListener('click', limpiarProdForm);
 
+function actualizarContador() {
+    $('prodContador').textContent = $('prodDescripcion').value.length + '/255';
+}
+$('prodDescripcion').addEventListener('input', actualizarContador);
+
+// Al corregir un campo se quita su marca de error
+$('prodForm').addEventListener('input', e => {
+    const campo = e.target.closest('.campo');
+    if (!campo || !campo.classList.contains('invalido')) return;
+    campo.classList.remove('invalido');
+    campo.querySelector('small.error').textContent = '';
+});
+
 $('prodForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const id = $('prodId').value;
-    const payload = { nombre: $('prodNombre').value, stock: parseInt($('prodStock').value, 10) };
+    const v = {
+        id: $('prodId').value,
+        nombre: $('prodNombre').value.trim(),
+        categoria: $('prodCategoria').value.trim(),
+        precio: $('prodPrecio').value.trim(),
+        stock: $('prodStock').value.trim(),
+        descripcion: $('prodDescripcion').value.trim()
+    };
+    const errores = validarFormulario(v);
+    if (Object.keys(errores).length) {
+        mostrarErrores(errores);
+        return;
+    }
+
+    const payload = {
+        nombre: v.nombre,
+        categoria: v.categoria || null,
+        precio: Number(v.precio),
+        stock: parseInt(v.stock, 10),
+        descripcion: v.descripcion || null
+    };
 
     $('prodBtn').disabled = true;
     try {
-        const res = await fetch(API_A + 'productos.php' + (id ? '?id=' + id : ''), {
-            method: id ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const d = await res.json();
-        if (res.ok) {
-            mostrarMensaje($('prodMsg'), id ? 'Producto actualizado' : 'Producto creado', 'ok');
+        const { ok, data } = await api(v.id ? 'PUT' : 'POST', v.id, payload);
+        if (ok) {
+            mostrarMensaje($('prodMsg'), v.id ? 'Producto actualizado' : 'Producto creado', 'ok');
             limpiarProdForm();
             cargarProductos();
         } else {
-            mostrarMensaje($('prodMsg'), 'Error: ' + (d.error || 'desconocido'), 'err');
+            if (data.detalles) mostrarErrores(data.detalles);
+            mostrarMensaje($('prodMsg'), 'Error: ' + (data.error || 'desconocido'), 'err');
         }
     } catch (err) {
         mostrarMensaje($('prodMsg'), 'No se pudo conectar con el servidor', 'err');
@@ -361,8 +547,10 @@ $('prodForm').addEventListener('submit', async e => {
 
 let idAEliminar = null;
 function pedirEliminar(id) {
+    const p = productos.find(x => x.id === id);
     idAEliminar = id;
-    $('modalTexto').textContent = '¿Seguro que quieres eliminar el producto #' + id + '? Esta acción no se puede deshacer.';
+    $('modalTexto').textContent = '¿Seguro que quieres eliminar "' + (p ? p.nombre : '#' + id) + '" de '
+        + TIENDAS[tiendaActual].nombre + '? Esta acción no se puede deshacer.';
     $('overlay').classList.add('show');
 }
 function cerrarModal() {
@@ -371,18 +559,19 @@ function cerrarModal() {
 }
 $('modalCancelar').addEventListener('click', cerrarModal);
 $('overlay').addEventListener('click', e => { if (e.target === $('overlay')) cerrarModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal(); });
 
 $('modalConfirmar').addEventListener('click', async () => {
     const id = idAEliminar;
     cerrarModal();
     try {
-        const res = await fetch(API_A + 'productos.php?id=' + id, { method: 'DELETE' });
-        const d = await res.json();
-        if (res.ok) {
+        const { ok, data } = await api('DELETE', id);
+        if (ok) {
             mostrarMensaje($('prodMsg'), 'Producto eliminado', 'ok');
+            if ($('prodId').value === String(id)) limpiarProdForm();
             cargarProductos();
         } else {
-            mostrarMensaje($('prodMsg'), 'Error: ' + (d.error || 'desconocido'), 'err');
+            mostrarMensaje($('prodMsg'), 'Error: ' + (data.error || 'desconocido'), 'err');
         }
     } catch (err) {
         mostrarMensaje($('prodMsg'), 'No se pudo conectar con el servidor', 'err');
