@@ -221,10 +221,8 @@ input:focus, select:focus { outline: none; border-color: #4338ca; }
     </div>
 </div>
 
+<script src="config.js"></script>
 <script>
-// Tienda A se accede desde el navegador por su puerto publicado en el host
-const API_A = 'http://' + location.hostname + ':8081/api/';
-
 const $ = id => document.getElementById(id);
 
 function mostrarMensaje(el, texto, tipo) {
@@ -257,7 +255,7 @@ window.addEventListener('hashchange', mostrarSeccion);
 async function cargarInventario() {
     const id = $('invId').value;
     try {
-        const res = await fetch('inventario.php?id=' + encodeURIComponent(id));
+        const res = await fetch(API_B + 'inventario.php?id=' + encodeURIComponent(id));
         const d = await res.json();
         if (!res.ok) throw new Error(d.error || 'desconocido');
         $('invNombre').textContent = d.nombre;
@@ -274,7 +272,7 @@ $('invForm').addEventListener('submit', e => { e.preventDefault(); cargarInventa
 // ---------- Actualizar stock ----------
 $('stockForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const url = $('stockTienda').value === 'a' ? API_A + 'update.php' : 'update.php';
+    const url = $('stockTienda').value === 'a' ? API_A + 'update.php' : API_B + 'update.php';
     const fd = new FormData();
     fd.append('id', $('stockId').value);
     fd.append('stock', $('stockValor').value);

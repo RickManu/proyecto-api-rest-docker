@@ -81,6 +81,35 @@ Resultado esperado en pantalla:
 - Stock Remoto (Tienda A via cURL): 15 unidades
 - Stock Total Combinado: 25 unidades
 
+## Paso 4b: Backend en VPS + frontend local
+
+El backend (`tiendaA`, `tiendaB` y `db`) corre en un VPS con Docker; el frontend
+(`frontend/`) corre en la máquina local y consume la API por HTTP.
+
+**En el VPS** (Ubuntu con Docker instalado):
+
+```bash
+git clone https://github.com/RickManu/proyecto-api-rest-docker.git
+cd proyecto-api-rest-docker
+docker compose up -d --build
+```
+
+Abre los puertos **8081** y **8082** en el firewall del VPS. El puerto 3306 de MariaDB
+queda ligado a `127.0.0.1`, así que la base de datos no es accesible desde internet.
+
+**En tu máquina local:**
+
+1. Edita `frontend/config.js` y cambia `SERVIDOR` por la IP de tu VPS.
+2. Sirve la carpeta del frontend:
+   ```bash
+   cd frontend
+   python3 -m http.server 5500
+   ```
+3. Abre `http://localhost:5500` en el navegador.
+
+Los endpoints de la API envían `Access-Control-Allow-Origin: *` para que el frontend
+local pueda consumirlos desde otro origen (CORS).
+
 ## Puntos de Evaluación (igual que el ejercicio original)
 
 - **API GET funcional (30%)**: Tienda A responde con JSON estructurado al consultar el ID del producto.

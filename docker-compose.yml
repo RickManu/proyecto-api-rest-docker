@@ -9,7 +9,7 @@ services:
       - ./db-init:/docker-entrypoint-initdb.d   # ejecuta init.sql al crear el contenedor
       - db_data:/var/lib/mysql
     ports:
-      - "3306:3306"   # opcional: acceder desde un cliente SQL en el host
+      - "127.0.0.1:3306:3306"   # solo accesible desde la propia máquina, nunca desde internet
 
   tiendaa:
     build:
