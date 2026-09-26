@@ -1,0 +1,110 @@
+### Pruebas manuales de la API desde VS Code
+### Requiere la extensión "REST Client" (humao.rest-client).
+### Haz clic en "Send Request" encima de cada petición para enviarla.
+
+@servidor = 2.25.220.14
+@tiendaA = http://{{servidor}}:8081/api/productos.php
+@tiendaB = http://{{servidor}}:8082/productos.php
+
+
+############################## TIENDA A ##############################
+
+### Listar productos
+GET {{tiendaA}}
+
+### Obtener un producto por id
+GET {{tiendaA}}?id=1
+
+### Registrar producto
+# @name crearA
+POST {{tiendaA}}
+Content-Type: application/json
+
+{
+    "nombre": "Chaqueta de prueba",
+    "precio": 450.00,
+    "categoria": "Ropa",
+    "descripcion": "Chaqueta impermeable",
+    "stock": 6
+}
+
+### Editar el producto recién creado (todos los campos)
+PUT {{tiendaA}}?id={{crearA.response.body.producto.id}}
+Content-Type: application/json
+
+{
+    "nombre": "Chaqueta de prueba XL",
+    "precio": 499.99,
+    "categoria": "Ropa",
+    "descripcion": "Talla XL",
+    "stock": 4
+}
+
+### Cambiar solo el stock
+PUT {{tiendaA}}?id={{crearA.response.body.producto.id}}
+Content-Type: application/json
+
+{ "stock": 10 }
+
+### Eliminar el producto recién creado
+DELETE {{tiendaA}}?id={{crearA.response.body.producto.id}}
+
+
+############################## TIENDA B ##############################
+
+### Listar productos
+GET {{tiendaB}}
+
+### Registrar producto
+# @name crearB
+POST {{tiendaB}}
+Content-Type: application/json
+
+{
+    "nombre": "Bufanda de prueba",
+    "precio": 85.50,
+    "categoria": "Accesorios",
+    "stock": 15
+}
+
+### Editar el producto recién creado
+PUT {{tiendaB}}?id={{crearB.response.body.producto.id}}
+Content-Type: application/json
+
+{
+    "precio": 79.90,
+    "stock": 12
+}
+
+### Eliminar el producto recién creado
+DELETE {{tiendaB}}?id={{crearB.response.body.producto.id}}
+
+
+############################## ERRORES ESPERADOS ##############################
+
+### 422 - datos inválidos (devuelve el error de cada campo)
+POST {{tiendaA}}
+Content-Type: application/json
+
+{ "nombre": "", "precio": -10, "stock": "abc" }
+
+### 409 - nombre duplicado
+POST {{tiendaA}}
+Content-Type: application/json
+
+{ "nombre": "camisa", "precio": 1, "stock": 1 }
+
+### 404 - producto inexistente
+GET {{tiendaA}}?id=999999
+
+### 400 - JSON mal formado
+POST {{tiendaB}}
+Content-Type: application/json
+
+{ esto no es json
+
+
+############################## INVENTARIO (cURL) ##############################
+
+### Stock combinado Tienda B + Tienda A
+GET http://{{servidor}}:8082/inventario.php?id=1
